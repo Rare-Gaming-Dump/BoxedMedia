@@ -19,6 +19,11 @@ trait BoxedImageMagickTrait {
 	 */
 	protected function transformImageMagick( $image, $params ) {
 		$mainConfig = MediaWikiServices::getInstance()->getMainConfig();
+
+		if ( $mainConfig->get( 'BoxedMediaThumbnailer' ) === 'vips' ) {
+			return $this->transformVips( $image, $params );
+		}
+
 		$sharpenReductionThreshold = $mainConfig->get( MainConfigNames::SharpenReductionThreshold );
 		$sharpenParameter = $mainConfig->get( MainConfigNames::SharpenParameter );
 		$maxAnimatedGifArea = $mainConfig->get( MainConfigNames::MaxAnimatedGifArea );
@@ -139,6 +144,77 @@ trait BoxedImageMagickTrait {
 	}
 
 	/**
+	 * Thumbnail with libvips instead of ImageMagick.
+	 *
+	 * libvips processes the image in horizontal strips rather than decoding it
+	 * whole, so peak memory is roughly (width x bands x strip height) instead of
+	 * (width x height x 8) bytes. On a large source that is the difference
+	 * between working in RAM and thrashing the pixel cache through disk.
+	 *
+	 * @param \File $image
+	 * @param array $params
+	 * @return \MediaTransformError|false False on success
+	 */
+	protected function transformVips( $image, $params ) {
+		$config = MediaWikiServices::getInstance()->getMainConfig();
+
+		$inName = 'in.' . self::extensionForMime( $image->getMimeType() );
+		$outName = 'out.' . self::extensionForMime( $params['mimeType'] );
+
+		// vipsthumbnail fits WITHIN the given box rather than forcing exact
+		// dimensions the way ImageMagick's trailing "!" does. In practice the
+		// two agree, because core has already computed physicalWidth and
+		// physicalHeight from the source aspect ratio.
+		$size = "{$params['physicalWidth']}x{$params['physicalHeight']}";
+
+		// Per-format save options, passed in brackets on the output filename.
+		$saveOpts = '';
+		switch ( $params['mimeType'] ) {
+			case 'image/jpeg':
+				$q = isset( $params['quality'] )
+					? (int)$params['quality']
+					: (int)$config->get( 'JpegQuality' );
+				$saveOpts = "[Q={$q},optimize_coding,strip]";
+				break;
+			case 'image/webp':
+				$saveOpts = '[Q=' . (int)$config->get( 'BoxedMediaWebpQuality' )
+					. ',effort=' . (int)$config->get( 'BoxedMediaWebpEffort' )
+					. ',strip]';
+				break;
+			case 'image/png':
+				$saveOpts = '[compression=9,strip]';
+				break;
+		}
+
+		$args = array_merge(
+			[ $config->get( 'BoxedMediaVipsCommand' ) ],
+			[ $inName ],
+			[ '--size', $size ],
+			(array)$config->get( 'BoxedMediaVipsExtraArgs' ),
+			[ '--output', $outName . $saveOpts ]
+		);
+		$args = array_map( 'strval', $args );
+
+		$error = $this->executeBoxed(
+			$args,
+			$inName,
+			$params['srcPath'],
+			$outName,
+			$params['dstPath'],
+			'thumbnail-vips',
+			$config->get( 'BoxedMediaService' )
+		);
+
+		if ( $error !== false ) {
+			[ $retval, $err ] = $error;
+			$this->logErrorForExternalProcess( $retval, $err, implode( ' ', $args ) );
+			return $this->getMediaTransformError( $params, "$err\nError code: $retval" );
+		}
+
+		return false;
+	}
+
+	/**
 	 * Run a command inside the Shellbox with one input file and one output file.
 	 *
 	 * @param string[] $args Argv
@@ -168,8 +244,10 @@ trait BoxedImageMagickTrait {
 				->memoryLimit( $config->get( 'BoxedMediaMemoryLimit' ) )
 				->fileSizeLimit( $config->get( 'BoxedMediaFileSizeLimit' ) )
 				->environment( [
-					'OMP_NUM_THREADS' => '1',
+					'OMP_NUM_THREADS' => (string)$config->get( 'BoxedMediaThreads' ),
+					'VIPS_CONCURRENCY' => (string)$config->get( 'BoxedMediaThreads' ),
 					'MAGICK_TMPDIR' => $config->get( 'BoxedMediaMagickTempDir' ),
+					'VIPS_DISC_THRESHOLD' => (string)$config->get( 'BoxedMediaVipsDiscThreshold' ),
 				] )
 				->params( ...$args )
 				->inputFileFromFile( $inName, $srcPath )

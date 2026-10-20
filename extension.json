@@ -1,74 +1,102 @@
 {
-	"name": "BoxedMedia",
-	"version": "0.1.0",
-	"author": [
-		"Cynthia <cynthia@coan.dev>"
-	],
-	"url": "https://www.github.com/Rare-Gaming-Dump/BoxedMedia",
-	"description": "Routes ImageMagick and rsvg-convert media transforms through Shellbox (BoxedCommand) so that no image-processing binary needs to exist on the wiki host.",
-	"license-name": "MIT",
-	"type": "media",
-	"requires": {
-		"MediaWiki": ">= 1.43.0"
-	},
-	"AutoloadNamespaces": {
-		"MediaWiki\\Extension\\BoxedMedia\\": "src/"
-	},
-	"MediaHandlers": {
-		"image/jpeg": "MediaWiki\\Extension\\BoxedMedia\\BoxedJpegHandler",
-		"image/png": "MediaWiki\\Extension\\BoxedMedia\\BoxedPngHandler",
-		"image/gif": "MediaWiki\\Extension\\BoxedMedia\\BoxedGifHandler",
-		"image/webp": "MediaWiki\\Extension\\BoxedMedia\\BoxedWebPHandler"
-	},
-	"config": {
-		"BoxedMediaService": {
-			"value": "imagemagick",
-			"description": "Key in $wgShellboxUrls naming the Shellbox that has ImageMagick installed."
-		},
-		"BoxedMediaSvgService": {
-			"value": "rsvg",
-			"description": "Key in $wgShellboxUrls naming the Shellbox that has rsvg-convert installed. May be the same as BoxedMediaService."
-		},
-		"BoxedMediaConvertCommand": {
-			"value": "/usr/bin/convert",
-			"description": "Absolute path to the ImageMagick convert binary AS IT EXISTS INSIDE THE SHELLBOX, not on the wiki host. ImageMagick 7 may ship only 'magick' with no 'convert' alias depending on packaging -- check with `command -v convert magick` in the VM."
-		},
-		"BoxedMediaRsvgCommand": {
-			"value": "/usr/bin/rsvg-convert",
-			"description": "Absolute path to rsvg-convert AS IT EXISTS INSIDE THE SHELLBOX."
-		},
-		"BoxedMediaImageMagickVersion": {
-			"value": "7.1.1",
-			"description": "FALLBACK ImageMagick version, used only when the Shellbox cannot be reached. Normally the version is queried from the Shellbox itself and cached for an hour, so this value does not need to track your VM image. It exists so that version_compare() gates in core still behave sanely while the VM is down."
-		},
-		"BoxedMediaCpuTimeLimit": {
-			"value": 900,
-			"description": "CPU seconds allowed for a single transform inside the Shellbox."
-		},
-		"BoxedMediaWallTimeLimit": {
-			"value": 1200,
-			"description": "Wall-clock seconds for a single transform. Passed as createBoxed()'s second argument, which also sets the HTTP client timeout (timeout = this + 1). Must exceed the slowest legitimate transform on a single vCPU."
-		},
-		"BoxedMediaMemoryLimit": {
-			"value": 3221225472,
-			"description": "Memory limit in bytes for a single transform inside the Shellbox."
-		},
-		"BoxedMediaFileSizeLimit": {
-			"value": 134217728,
-			"description": "Maximum size in bytes of a file the boxed command may create."
-		},
-		"BoxedMediaMagickTempDir": {
-			"value": "/var/tmp/scratch/magick",
-			"description": "MAGICK_TMPDIR inside the box. Must live on the scratch volume, or ImageMagick's pixel cache spills onto the VM rootfs and fills it."
-		},
-		"BoxedMediaStripMetadata": {
-			"value": false,
-			"description": "Explicitly remove EXIF, IPTC, XMP and other profiles from thumbnails. Usually redundant: ImageMagick's -thumbnail already discards profiles. ICC/ICM colour profiles are deliberately PRESERVED, because removing them makes wide-gamut images render over-saturated in browsers. Set BoxedMediaStripColourProfile to also drop those."
-		},
-		"BoxedMediaStripColourProfile": {
-			"value": false,
-			"description": "With BoxedMediaStripMetadata, also remove ICC/ICM colour profiles (equivalent to -strip). Saves a few KB per thumbnail at the cost of colour accuracy on non-sRGB sources. Leave off unless size matters more than colour."
-		}
-	},
-	"manifest_version": 2
+  "name": "BoxedMedia",
+  "version": "0.1.0",
+  "author": [
+    "Cynthia <cynthia@coan.dev>"
+  ],
+  "url": "https://www.github.com/Rare-Gaming-Dump/BoxedMedia",
+  "description": "Routes ImageMagick and rsvg-convert media transforms through Shellbox (BoxedCommand) so that no image-processing binary needs to exist on the wiki host.",
+  "license-name": "MIT",
+  "type": "media",
+  "requires": {
+    "MediaWiki": ">= 1.43.0"
+  },
+  "AutoloadNamespaces": {
+    "MediaWiki\\Extension\\BoxedMedia\\": "src/"
+  },
+  "MediaHandlers": {
+    "image/jpeg": "MediaWiki\\Extension\\BoxedMedia\\BoxedJpegHandler",
+    "image/png": "MediaWiki\\Extension\\BoxedMedia\\BoxedPngHandler",
+    "image/gif": "MediaWiki\\Extension\\BoxedMedia\\BoxedGifHandler",
+    "image/webp": "MediaWiki\\Extension\\BoxedMedia\\BoxedWebPHandler"
+  },
+  "config": {
+    "BoxedMediaService": {
+      "value": "imagemagick",
+      "description": "Key in $wgShellboxUrls naming the Shellbox that has ImageMagick installed."
+    },
+    "BoxedMediaSvgService": {
+      "value": "rsvg",
+      "description": "Key in $wgShellboxUrls naming the Shellbox that has rsvg-convert installed. May be the same as BoxedMediaService."
+    },
+    "BoxedMediaConvertCommand": {
+      "value": "/usr/bin/convert",
+      "description": "Absolute path to the ImageMagick convert binary AS IT EXISTS INSIDE THE SHELLBOX, not on the wiki host. ImageMagick 7 may ship only 'magick' with no 'convert' alias depending on packaging -- check with `command -v convert magick` in the VM."
+    },
+    "BoxedMediaRsvgCommand": {
+      "value": "/usr/bin/rsvg-convert",
+      "description": "Absolute path to rsvg-convert AS IT EXISTS INSIDE THE SHELLBOX."
+    },
+    "BoxedMediaImageMagickVersion": {
+      "value": "7.1.1",
+      "description": "FALLBACK ImageMagick version, used only when the Shellbox cannot be reached. Normally the version is queried from the Shellbox itself and cached for an hour, so this value does not need to track your VM image. It exists so that version_compare() gates in core still behave sanely while the VM is down."
+    },
+    "BoxedMediaCpuTimeLimit": {
+      "value": 900,
+      "description": "CPU seconds allowed for a single transform inside the Shellbox."
+    },
+    "BoxedMediaWallTimeLimit": {
+      "value": 1200,
+      "description": "Wall-clock seconds for a single transform. Passed as createBoxed()'s second argument, which also sets the HTTP client timeout (timeout = this + 1). Must exceed the slowest legitimate transform on a single vCPU."
+    },
+    "BoxedMediaMemoryLimit": {
+      "value": 3221225472,
+      "description": "Memory limit in bytes for a single transform inside the Shellbox."
+    },
+    "BoxedMediaFileSizeLimit": {
+      "value": 134217728,
+      "description": "Maximum size in bytes of a file the boxed command may create."
+    },
+    "BoxedMediaMagickTempDir": {
+      "value": "/var/tmp/scratch/magick",
+      "description": "MAGICK_TMPDIR inside the box. Must live on the scratch volume, or ImageMagick's pixel cache spills onto the VM rootfs and fills it."
+    },
+    "BoxedMediaStripMetadata": {
+      "value": false,
+      "description": "Explicitly remove EXIF, IPTC, XMP and other profiles from thumbnails. Usually redundant: ImageMagick's -thumbnail already discards profiles. ICC/ICM colour profiles are deliberately PRESERVED, because removing them makes wide-gamut images render over-saturated in browsers. Set BoxedMediaStripColourProfile to also drop those."
+    },
+    "BoxedMediaStripColourProfile": {
+      "value": false,
+      "description": "With BoxedMediaStripMetadata, also remove ICC/ICM colour profiles (equivalent to -strip). Saves a few KB per thumbnail at the cost of colour accuracy on non-sRGB sources. Leave off unless size matters more than colour."
+    },
+    "BoxedMediaThumbnailer": {
+      "value": "imagemagick",
+      "description": "Which binary performs raster thumbnailing inside the Shellbox: 'imagemagick' or 'vips'. libvips streams the image in strips instead of materialising the whole pixel cache, so it is typically several times faster and uses a small fraction of the memory on large sources. It cannot reproduce every ImageMagick behaviour -- see the README section on what differs."
+    },
+    "BoxedMediaVipsCommand": {
+      "value": "/usr/bin/vipsthumbnail",
+      "description": "Absolute path to vipsthumbnail INSIDE the Shellbox."
+    },
+    "BoxedMediaVipsExtraArgs": {
+      "value": [],
+      "description": "Extra arguments appended to every vipsthumbnail invocation, before the output. Exists because flag names differ across libvips versions -- older builds need an explicit '--rotate' to honour EXIF orientation, newer ones auto-rotate and offer '--no-rotate' instead. Verify with `vipsthumbnail --help` in the VM."
+    },
+    "BoxedMediaWebpQuality": {
+      "value": 80,
+      "description": "WebP output quality. Core hardcodes 95, which is inherited from the PNG branch where 95 means zlib level and costs nothing. For WebP it means near-lossless and is extremely slow to encode. 80 is visually indistinguishable for photographs."
+    },
+    "BoxedMediaWebpEffort": {
+      "value": 2,
+      "description": "WebP encoder effort, 0-6. Higher is smaller and much slower. 2 is a good default on a single vCPU."
+    },
+    "BoxedMediaThreads": {
+      "value": 1,
+      "description": "Threads the converter may use: sets OMP_NUM_THREADS for ImageMagick and VIPS_CONCURRENCY for libvips. Keep at 1 unless the VM has more than one vCPU, and never set it above the guest's vcpu_count -- oversubscribing a single vCPU makes ImageMagick slower, not faster, and its OpenMP paths have a long history of deadlocking under memory pressure."
+    },
+    "BoxedMediaVipsDiscThreshold": {
+      "value": "512m",
+      "description": "When libvips should swap from reading from memory to reading from disc."
+    }
+  },
+  "manifest_version": 2
 }

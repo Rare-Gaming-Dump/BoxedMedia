@@ -63,7 +63,7 @@ trait BoxedImageMagickTrait {
 				$animation_post = [ '-interlace', 'PNG' ];
 			}
 		} elseif ( $params['mimeType'] === 'image/webp' ) {
-			$quality = [ '-quality', '95' ];
+			$quality = [ '-quality', '95', '-define', 'webp:method=2' ];
 		} elseif ( $params['mimeType'] === 'image/gif' ) {
 			if ( $this->getImageArea( $image ) > $maxAnimatedGifArea ) {
 				$scene = 0;
